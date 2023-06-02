@@ -1,11 +1,16 @@
+import os
 import socket
+from dotenv import load_dotenv
 import chainlit as cl
 from chainlit import user_session as users
 #from server import active
+load_dotenv()
+
+
 
 HEADER = 1024
-PORT = 8880
-SERVER = "127.0.0.1"
+PORT = 38880
+SERVER = os.getenv("HOST_SERVER")
 ADDRESS = (SERVER, PORT)
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "#DISCONNECT"
