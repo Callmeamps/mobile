@@ -1,9 +1,10 @@
 import socket
 import chainlit as cl
+from chainlit import user_session as users
 #from server import active
 
 HEADER = 1024
-PORT = 8881
+PORT = 8880
 SERVER = "127.0.0.1"
 ADDRESS = (SERVER, PORT)
 FORMAT = "utf-8"
@@ -11,56 +12,64 @@ DISCONNECT_MESSAGE = "#DISCONNECT"
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+
 def send(message):
     msg = message.encode(FORMAT)
-    msg_length = len(msg)
-    send_length = str(msg_length).encode(FORMAT)
-    send_length += b" " * (HEADER - len(send_length))
-    client.send(send_length)
     client.send(msg)
     
+def set_nickname(nickname):
+    pass
+
 def recieve():
-    client.connect(ADDRESS)
     connected = True
     while connected:
         try:
-            pass
-        except:
+            message = client.recv(HEADER).decode(FORMAT)
+            return message
+        except Exception as err:
+            print(f"[ERROR] {err}")
+            client.close()
             connected = False
             
 
 @cl.action_callback("connect")
-def connect(action):
-    recieve()
-    cl.Message(content=f"Executed {action.name}").send()
+def connect_client(action):
+    client.connect(ADDRESS)
+    cl.Message(content="connected").send()
+    nickname = cl.AskUserMessage(content="What's your Nickname?", timeout=10).send()
+    if nickname:
+        current_user = users.set("nickname", nickname)
+        nickname["author"] = str(nickname)
+        print(current_user)
+        send(nickname['content'])
+        cl.Message(content=f"Nickname set: {nickname['content']}").send()
+        message = recieve()
+        cl.Message(content=f"SYSTEM\n{message}")
     # Optionally remove the action button from the chatbot user interface
 
 @cl.action_callback("disconnect")
 def disconnect(action):
     send(DISCONNECT_MESSAGE)
+    client.close()
     cl.Message(content=f"Executed {action.name}").send()
-    # Optionally remove the action button from the chatbot user interface
+        # Optionally remove the action button from the chatbot user interface
 
 def analyse_file():
     pass
 
 @cl.on_chat_start
 def start():
-    nickname = cl.AskUserMessage(content="What's your Nickname?", timeout=10).send()
-    if nickname:
-        cl.Message(content=f"Your Nickname is: {nickname['content']}").send()
     # Connect client to server
     # Sending an action button within a chatbot message
     actions = [
         cl.Action(name="connect", value="connect", description="connect"),
         cl.Action(name="disconnect", value="disconnect", description="disconnect")
     ]
-    text_content = "1"
     elements = [
-        cl.Text(name="Active", text=text_content, display="page")
+        cl.Text(name="Side Panel", text=str(users), display="side")
     ]
 
-    cl.Message(content="Active", elements=elements).send()
+    cl.Message(content="Side Panel", elements=elements).send()
     cl.Message(content="Interact with this action button:", actions=actions).send()
 
 @cl.on_message
@@ -69,10 +78,8 @@ def main(message: str):
     [ARGS]
     message: string
     """
-    
     # Your custom logic goes here...
     send(message)
+    cast = recieve()
     # Send a response back to the user
-    cl.Message(
-        content=f"Received: {message}",
-    ).send()
+    cl.Message(content=f"Received: {cast}").send()
