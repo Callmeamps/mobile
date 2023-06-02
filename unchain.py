@@ -20,11 +20,18 @@ def send(message):
     client.send(msg)
     
 def recieve():
-    client.listen()
+    client.connect(ADDRESS)
+    connected = True
+    while connected:
+        try:
+            pass
+        except:
+            connected = False
+            
 
 @cl.action_callback("connect")
 def connect(action):
-    client.connect(ADDRESS)
+    recieve()
     cl.Message(content=f"Executed {action.name}").send()
     # Optionally remove the action button from the chatbot user interface
 
